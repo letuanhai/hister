@@ -1633,11 +1633,16 @@ func servePreview(c *webContext) {
 			Type:     doc.Type.String(),
 			Language: doc.Language,
 			Label:    doc.Label,
+			Tags:     doc.Tags,
 			Visits:   doc.AddCount,
 			UserID:   doc.UserID,
 			Metadata: metadata,
 		},
 	}
+	payload.Summary = doc.Summary
+	payload.SummarySource = doc.SummarySource
+	payload.Notes = doc.Notes
+	payload.UserEdited = doc.UserEdited
 	if viewingVersionID > 0 {
 		payload.VersionID = viewingVersionID
 		payload.VersionCreatedAt = &viewingVersionCreatedAt

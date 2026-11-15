@@ -16,7 +16,7 @@
           "type": "integer"
         },
         "query": {
-          "description": "Search query. Supports plain keywords, \"exact phrases\", field filters (domain:, site:, has:, title:, url:, url_re:, text:, type:web/local/remote, language:, label:, visits:, updated:, added:, metadata.KEY:), sorting (sort:relevance, sort:visits, sort:-visits, sort:date, sort:-date, sort:domain, sort:-domain), negation (-term), wildcards (term*), and grouped alternatives ((a|b|c)). Omit or leave empty to count all accessible indexed documents.",
+          "description": "Search query. Supports plain keywords, \"exact phrases\", field filters (domain:, site:, has:, title:, url:, url_re:, text:, type:web/local/remote, language:, label:, tag:, summary:, notes:, visits:, updated:, added:, metadata.KEY:), sorting (sort:relevance, sort:visits, sort:-visits, sort:date, sort:-date, sort:domain, sort:-domain), negation (-term), wildcards (term*), and grouped alternatives ((a|b|c)). Omit or leave empty to count all accessible indexed documents.",
           "type": "string"
         }
       },
@@ -393,7 +393,7 @@
           "type": "string"
         },
         "query": {
-          "description": "Search query. Supports plain keywords, \"exact phrases\", field filters (domain:, site:, has:, title:, url:, url_re:, text:, type:web/local/remote, language:, label:, visits:, updated:, added:, metadata.KEY:), sorting (sort:relevance, sort:visits, sort:-visits, sort:date, sort:-date, sort:domain, sort:-domain), negation (-term), wildcards (term*), and grouped alternatives ((a|b|c)).",
+          "description": "Search query. Supports plain keywords, \"exact phrases\", field filters (domain:, site:, has:, title:, url:, url_re:, text:, type:web/local/remote, language:, label:, tag:, summary:, notes:, visits:, updated:, added:, metadata.KEY:), sorting (sort:relevance, sort:visits, sort:-visits, sort:date, sort:-date, sort:domain, sort:-domain), negation (-term), wildcards (term*), and grouped alternatives ((a|b|c)).",
           "type": "string"
         },
         "semantic": {

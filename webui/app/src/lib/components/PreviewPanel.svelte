@@ -5,6 +5,8 @@
   import CodePreview, { parseCodePreview, type CodePreviewData } from './CodePreview.svelte';
   import { parseIssuePreview, type IssuePreviewData } from '#lib/issue-preview.js';
   import PreviewLoadError from './PreviewLoadError.svelte';
+  import DocumentEditDialog from './DocumentEditDialog.svelte';
+  import type { EditableDocument } from '#lib/tags.js';
   import { apiFetch } from '#lib/api.js';
   import { resolve } from '$app/paths';
   import {
@@ -39,6 +41,7 @@
     Video,
     Footprints,
     Trash2,
+    Pencil,
   } from '@lucide/svelte';
   import { onMount, untrack } from 'svelte';
 
@@ -87,6 +90,16 @@
   let versionsLoaded = $state(false);
   let versionsError = $state('');
   let viewingVersion = $state<DocumentVersion | null>(null);
+  let editOpen = $state(false);
+  let editable = $state<Omit<EditableDocument, 'url'>>({
+    title: '',
+    label: '',
+    tags: [],
+    summary: '',
+    summary_source: '',
+    notes: '',
+    user_edited: [],
+  });
   const visitsPageSize = 100;
   let visitCount = $state(0);
   let visits = $state<DocumentVisit[]>([]);
@@ -133,6 +146,7 @@
       previewMetadataEntries.length > 0 ||
       versionCount > 0 ||
       visitCount > 0 ||
+      !!editable.notes ||
       !!meta?.videos?.length,
   );
 
@@ -281,6 +295,15 @@
     versions = [];
     viewingVersion = null;
     if (versionId === null) {
+      editable = {
+        title: '',
+        label: '',
+        tags: [],
+        summary: '',
+        summary_source: '',
+        notes: '',
+        user_edited: [],
+      };
       meta = null;
       added = null;
       updated = null;
@@ -310,6 +333,15 @@
       updated = data.updated ?? null;
       meta = data.meta ?? null;
       documentDetails = data.details;
+      editable = {
+        title: data.title ?? '',
+        label: data.details?.label ?? '',
+        tags: data.details?.tags ?? [],
+        summary: data.summary ?? '',
+        summary_source: data.summary_source ?? '',
+        notes: data.notes ?? '',
+        user_edited: data.user_edited ?? [],
+      };
       versionCount = data.version_count ?? 0;
       visitCount = data.visit_count ?? 0;
       if (data.version_id && data.version_created_at) {
@@ -364,6 +396,20 @@
     } finally {
       if (requestId === versionsRequestId) versionsLoading = false;
     }
+  }
+
+  function onDocumentSaved(doc: EditableDocument) {
+    editable = {
+      title: doc.title,
+      label: doc.label,
+      tags: doc.tags,
+      summary: doc.summary,
+      summary_source: doc.summary_source,
+      notes: doc.notes,
+      user_edited: doc.user_edited,
+    };
+    title = doc.title || hintTitle;
+    if (documentDetails) documentDetails = { ...documentDetails, label: doc.label, tags: doc.tags };
   }
 
   function toggleVersions() {
@@ -566,6 +612,26 @@
                 </div>
               </DropdownMenu.Content>
             </DropdownMenu.Root>
+            {#if !viewingVersion}
+              <Tooltip.Root>
+                <Tooltip.Trigger onclick={() => (editOpen = true)}>
+                  {#snippet child({ props })}
+                    <Button
+                      {...props}
+                      variant="ghost"
+                      size="icon-sm"
+                      class="text-text-brand-muted hover:text-text-brand"
+                      aria-label="Edit entry"
+                    >
+                      <Pencil class="size-4" />
+                    </Button>
+                  {/snippet}
+                </Tooltip.Trigger>
+                <Tooltip.Content role="tooltip" side="bottom" sideOffset={6}
+                  >Edit entry</Tooltip.Content
+                >
+              </Tooltip.Root>
+            {/if}
             <Tooltip.Root>
               <Tooltip.Trigger>
                 {#snippet child({ props })}
@@ -669,6 +735,27 @@
           {/if}
         </h2>
       </div>
+      {#if editable.tags.length || editable.summary}
+        <div class="preview-user-data mt-1 flex flex-col gap-1">
+          {#if editable.summary}
+            <p class="preview-summary font-inter text-text-brand-secondary text-sm italic">
+              {editable.summary}
+            </p>
+          {/if}
+          {#if editable.tags.length}
+            <ul class="flex flex-wrap gap-x-2 gap-y-0.5" aria-label="Tags">
+              {#each editable.tags as tag (tag)}
+                <li>
+                  <a
+                    class="font-inter text-hister-teal text-xs hover:underline"
+                    href={`${resolve('/')}?q=${encodeURIComponent(`tag:${tag}`)}`}>#{tag}</a
+                  >
+                </li>
+              {/each}
+            </ul>
+          {/if}
+        </div>
+      {/if}
       {#if showDocumentDetails && hasDocumentDetails}
         <div
           id="preview-document-details"
@@ -712,6 +799,18 @@
                 </button>
               {/if}
             </div>
+          {/if}
+          {#if editable.notes}
+            <p
+              class="font-outfit text-text-brand-muted mb-1 text-xs font-bold tracking-widest uppercase"
+            >
+              Notes
+            </p>
+            <p
+              class="preview-notes font-inter text-text-brand-secondary mb-3 text-xs whitespace-pre-wrap"
+            >
+              {editable.notes}
+            </p>
           {/if}
           <p
             class="font-outfit text-text-brand-muted mb-1 text-xs font-bold tracking-widest uppercase"
@@ -1043,6 +1142,14 @@
     </div>
   {/if}
 </div>
+
+<DocumentEditDialog
+  bind:open={editOpen}
+  {url}
+  {documentId}
+  initial={editable}
+  onsaved={onDocumentSaved}
+/>
 
 <style>
   .preview-panel-connected .preview-header {

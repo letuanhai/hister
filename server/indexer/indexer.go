@@ -43,7 +43,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var Version = 8
+var Version = 9
 
 // Indexer owns the search indexes and related document storage for one Hister
 // data directory.
@@ -340,6 +340,34 @@ type storedDocumentState struct {
 	found            bool
 	label            string
 	added            int64
+	title            string
+	tags             []string
+	summary          string
+	summarySource    string
+	notes            string
+	userEdited       []string
+}
+
+// applyStoredUserData keeps user managed fields of an existing document when
+// it is submitted again. Submitted tags are merged with the stored ones.
+func applyStoredUserData(d *document.Document, state storedDocumentState) {
+	d.UserEdited = slices.Clone(state.userEdited)
+	if !state.found {
+		d.Tags = document.NormalizeTags(d.Tags)
+		return
+	}
+	d.Tags = document.NormalizeTags(append(slices.Clone(state.tags), d.Tags...))
+	if d.Notes == "" {
+		d.Notes = state.notes
+	}
+	if d.IsUserEdited(document.UserEditedTitle) && state.title != "" {
+		d.Title = state.title
+	}
+	if d.IsUserEdited(document.UserEditedSummary) || d.Summary == "" ||
+		state.summarySource == document.SummarySourceLLM && d.SummarySource != document.SummarySourceLLM {
+		d.Summary = state.summary
+		d.SummarySource = state.summarySource
+	}
 }
 
 func (s storedDocumentState) embeddingContentChanged(d *document.Document) bool {
@@ -1350,6 +1378,7 @@ func (i *Indexer) prepareDocumentWrite(ctx context.Context, d *document.Document
 	if d.Label == "" {
 		d.Label = state.label
 	}
+	applyStoredUserData(d, state)
 	plan, err := i.prepareStorageWrite(d, state)
 	if err != nil {
 		return nil, err
@@ -1473,7 +1502,8 @@ func (i *Indexer) getStoredDocumentState(id string) storedDocumentState {
 	var state storedDocumentState
 	q := bleve.NewDocIDQuery([]string{id})
 	req := bleve.NewSearchRequest(q)
-	req.Fields = []string{"html_key", "favicon_key", "language", "language_override", "add_count", "label", "added", "metadata." + document.MetadataIgnoreSkipRules}
+	req.Fields = []string{"html_key", "favicon_key", "language", "language_override", "add_count", "label", "added", "metadata." + document.MetadataIgnoreSkipRules,
+		"title", "tags", "summary", "summary_source", "notes", "user_edited"}
 	if i.embedder != nil && i.vectorStore != nil {
 		req.Fields = append(req.Fields, "text")
 	}
@@ -1513,6 +1543,22 @@ func (i *Indexer) getStoredDocumentState(id string) storedDocumentState {
 		}
 		if state.label == "" {
 			state.label, _ = h.Fields["label"].(string)
+		}
+		if state.title == "" {
+			state.title, _ = h.Fields["title"].(string)
+		}
+		state.tags = document.NormalizeTags(append(state.tags, document.TagsFromField(h.Fields["tags"])...))
+		if state.summary == "" {
+			state.summary, _ = h.Fields["summary"].(string)
+			state.summarySource, _ = h.Fields["summary_source"].(string)
+		}
+		if state.notes == "" {
+			state.notes, _ = h.Fields["notes"].(string)
+		}
+		for _, field := range document.StringsFromField(h.Fields["user_edited"]) {
+			if !slices.Contains(state.userEdited, field) {
+				state.userEdited = append(state.userEdited, field)
+			}
 		}
 		if n, ok := h.Fields["added"].(float64); ok {
 			added := int64(n)
@@ -2327,6 +2373,19 @@ func (idx *Indexer) resFromHit(h *search.DocumentMatch, include resultInclude) *
 	if s, ok := h.Fields["label"].(string); ok {
 		d.Label = s
 	}
+	d.Tags = document.TagsFromField(h.Fields["tags"])
+	if s, ok := h.Fields["summary"].(string); ok {
+		d.Summary = s
+	}
+	if s, ok := h.Fields["summary_source"].(string); ok {
+		d.SummarySource = s
+	}
+	if s, ok := h.Fields["notes"].(string); ok {
+		d.Notes = s
+	}
+	if fields := document.StringsFromField(h.Fields["user_edited"]); len(fields) > 0 {
+		d.UserEdited = slices.Sorted(slices.Values(fields))
+	}
 	if n, ok := h.Fields["add_count"].(float64); ok {
 		d.AddCount = uint(n)
 	}
@@ -2497,6 +2556,11 @@ func createMapping(lang string, keepStopwords bool) mapping.IndexMapping {
 	docMapping.AddFieldMappingsAt("title", fm)
 	docMapping.AddFieldMappingsAt("text", fm)
 	docMapping.AddFieldMappingsAt("label", um)
+	docMapping.AddFieldMappingsAt("tags", um)
+	docMapping.AddFieldMappingsAt("summary", fm)
+	docMapping.AddFieldMappingsAt("notes", fm)
+	docMapping.AddFieldMappingsAt("summary_source", um)
+	docMapping.AddFieldMappingsAt("user_edited", noIdxMap)
 	docMapping.AddFieldMappingsAt("url", um)
 	docMapping.AddFieldMappingsAt("domain", um)
 	docMapping.AddFieldMappingsAt("language", um)

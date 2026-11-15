@@ -5,6 +5,7 @@ package indexer
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/asciimoo/hister/server/document"
@@ -117,6 +118,52 @@ func (i *Indexer) applyDocumentChanges(d *document.Document, changes servertypes
 		d.Title = *changes.Title
 		changed = true
 		embeddingContextDirty = true
+	}
+	if changes.Title != nil && !d.IsUserEdited(document.UserEditedTitle) {
+		d.MarkUserEdited(document.UserEditedTitle)
+		changed = true
+	}
+	if changes.ResetTitle && changes.Title == nil && d.IsUserEdited(document.UserEditedTitle) {
+		// The next submission of the page restores its own title.
+		d.UnmarkUserEdited(document.UserEditedTitle)
+		changed = true
+	}
+	if changes.Tags != nil || len(changes.AddTags) > 0 || len(changes.RemoveTags) > 0 {
+		tags := d.Tags
+		if changes.Tags != nil {
+			tags = *changes.Tags
+		}
+		tags = append(slices.Clone(tags), changes.AddTags...)
+		remove := document.NormalizeTags(changes.RemoveTags)
+		tags = slices.DeleteFunc(document.NormalizeTags(tags), func(t string) bool { return slices.Contains(remove, t) })
+		if len(tags) == 0 {
+			tags = nil
+		}
+		if !slices.Equal(tags, d.Tags) {
+			d.Tags = tags
+			changed = true
+		}
+	}
+	if changes.Summary != nil {
+		if summary := strings.TrimSpace(*changes.Summary); summary == "" {
+			if d.IsUserEdited(document.UserEditedSummary) || d.SummarySource == document.SummarySourceUser {
+				d.UnmarkUserEdited(document.UserEditedSummary)
+				d.Summary = ""
+				d.SummarySource = ""
+				changed = true
+			}
+		} else if d.Summary != summary || !d.IsUserEdited(document.UserEditedSummary) {
+			d.Summary = summary
+			d.SummarySource = document.SummarySourceUser
+			d.MarkUserEdited(document.UserEditedSummary)
+			changed = true
+		}
+	}
+	if changes.Notes != nil {
+		if notes := strings.TrimSpace(*changes.Notes); d.Notes != notes {
+			d.Notes = notes
+			changed = true
+		}
 	}
 	if changes.Language != nil {
 		override := *changes.Language

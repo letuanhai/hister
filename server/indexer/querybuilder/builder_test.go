@@ -149,8 +149,8 @@ func Test_build_ignores_standalone_wildcard_terms(t *testing.T) {
 			t.Fatalf("Build(%q): expected 1 must clause, got %d", input, len(clauses))
 		}
 		dq := asDisjunction(t, clauses[0])
-		if len(dq.Disjuncts) != 4 {
-			t.Fatalf("Build(%q): expected 4 disjuncts, got %d", input, len(dq.Disjuncts))
+		if len(dq.Disjuncts) != 6 {
+			t.Fatalf("Build(%q): expected 6 disjuncts, got %d", input, len(dq.Disjuncts))
 		}
 		for _, d := range dq.Disjuncts {
 			if wq, ok := d.(*query.WildcardQuery); ok && wq.Wildcard == "*" {
@@ -204,8 +204,8 @@ func Test_build_ignores_match_all_alternative_in_conjunction(t *testing.T) {
 		t.Fatalf("expected 1 must clause, got %d", len(clauses))
 	}
 	dq := asDisjunction(t, clauses[0])
-	if len(dq.Disjuncts) != 4 {
-		t.Fatalf("expected 4 disjuncts, got %d", len(dq.Disjuncts))
+	if len(dq.Disjuncts) != 6 {
+		t.Fatalf("expected 6 disjuncts, got %d", len(dq.Disjuncts))
 	}
 }
 
@@ -217,8 +217,8 @@ func Test_build_simple_word_returns_boolean_query(t *testing.T) {
 	}
 	// a plain word fans out to title/text MatchQuery + url/domain WildcardQuery
 	dq := asDisjunction(t, clauses[0])
-	if len(dq.Disjuncts) != 4 {
-		t.Fatalf("expected 4 disjuncts (title, text, url, domain), got %d", len(dq.Disjuncts))
+	if len(dq.Disjuncts) != 6 {
+		t.Fatalf("expected 6 disjuncts (title, text, summary, notes, url, domain), got %d", len(dq.Disjuncts))
 	}
 }
 
@@ -248,8 +248,8 @@ func Test_build_quoted_phrase(t *testing.T) {
 	}
 	// The quoted token produces a DisjunctionQuery(title_phrase, text_phrase).
 	dq := asDisjunction(t, clauses[0])
-	if len(dq.Disjuncts) != 2 {
-		t.Fatalf("expected 2 disjuncts (title, text), got %d", len(dq.Disjuncts))
+	if len(dq.Disjuncts) != 4 {
+		t.Fatalf("expected 4 disjuncts (title, text, summary, notes), got %d", len(dq.Disjuncts))
 	}
 	titlePhrase := asMatchPhrase(t, dq.Disjuncts[0])
 	if titlePhrase.MatchPhrase != "hello world" {

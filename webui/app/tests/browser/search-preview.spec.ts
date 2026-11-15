@@ -1448,3 +1448,70 @@ test('preview shows the visit timeline and deletes a visit', async ({ page }) =>
   expect(deleted).toEqual({ id: 3 });
   await expect(page.getByRole('button', { name: '2 visits', exact: true })).toBeVisible();
 });
+
+test('preview entry editing saves tags, summary and notes with tag suggestions', async ({
+  page,
+}) => {
+  await page.route('**/api/preview?**', (route) =>
+    route.fulfill({
+      json: {
+        ...preview,
+        details: {
+          type: 'web',
+          language: 'en',
+          label: '',
+          tags: ['go'],
+          visits: 1,
+          user_id: 0,
+          metadata: {},
+        },
+        summary: 'Automatic summary',
+        summary_source: 'auto',
+      },
+    }),
+  );
+  await page.route('**/api/tags?**', (route) =>
+    route.fulfill({
+      json: [
+        { tag: 'go', count: 4 },
+        { tag: 'reading', count: 2 },
+      ],
+    }),
+  );
+  let saved: { url: string; document_id: string; changes: Record<string, unknown> } | null = null;
+  await page.route('**/api/document/edit', async (route) => {
+    saved = route.request().postDataJSON();
+    await route.fulfill({
+      json: {
+        url: original,
+        title: preview.title,
+        label: '',
+        tags: ['go', 'reading'],
+        summary: 'My summary',
+        summary_source: 'user',
+        notes: 'Some notes',
+        user_edited: ['summary'],
+      },
+    });
+  });
+  await page.goto(previewPath());
+  await expect(page.locator('.preview-summary')).toHaveText('Automatic summary');
+  await page.getByRole('button', { name: 'Edit entry', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByLabel('Summary')).toHaveValue('Automatic summary');
+  await dialog.getByRole('combobox').fill('rea');
+  await dialog.getByRole('option', { name: /#reading/ }).click();
+  await expect(dialog.getByRole('button', { name: 'Remove tag reading' })).toBeVisible();
+  await expect(dialog.getByRole('option', { name: /#go/ })).toHaveCount(0);
+  await dialog.getByLabel('Summary').fill('My summary');
+  await dialog.getByLabel('Notes').fill('Some notes');
+  await dialog.getByRole('button', { name: 'Save' }).click();
+  await expect(dialog).toBeHidden();
+  expect(saved).toEqual({
+    url: original,
+    document_id: 'document-1',
+    changes: { tags: ['go', 'reading'], summary: 'My summary', notes: 'Some notes' },
+  });
+  await expect(page.locator('.preview-summary')).toHaveText('My summary');
+  await expect(page.getByRole('link', { name: '#reading' })).toBeVisible();
+});

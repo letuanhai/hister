@@ -29,22 +29,35 @@ const MetadataIgnoreSkipRules = "ignore_skip_rules"
 const maxFaviconResponseSize = 8 * 1024 * 1024 // 8 MiB in bytes.
 
 type Document struct {
-	DocumentID string         `json:"id,omitempty"`
-	URL        string         `json:"url"`
-	Domain     string         `json:"domain"`
-	HTML       string         `json:"html"`
-	HTMLKey    string         `json:"html_key"`
-	Title      string         `json:"title"`
-	Text       string         `json:"text"`
-	Favicon    string         `json:"favicon"`
-	FaviconKey string         `json:"favicon_key"`
-	Score      float64        `json:"score"`
-	Added      int64          `json:"added"`
-	Updated    int64          `json:"updated"`
-	Type       DocType        `json:"type"`
-	Language   string         `json:"language"`
-	UserID     uint           `json:"user_id"`
-	Label      string         `json:"label"`
+	DocumentID string  `json:"id,omitempty"`
+	URL        string  `json:"url"`
+	Domain     string  `json:"domain"`
+	HTML       string  `json:"html"`
+	HTMLKey    string  `json:"html_key"`
+	Title      string  `json:"title"`
+	Text       string  `json:"text"`
+	Favicon    string  `json:"favicon"`
+	FaviconKey string  `json:"favicon_key"`
+	Score      float64 `json:"score"`
+	Added      int64   `json:"added"`
+	Updated    int64   `json:"updated"`
+	Type       DocType `json:"type"`
+	Language   string  `json:"language"`
+	UserID     uint    `json:"user_id"`
+	Label      string  `json:"label"`
+	// Tags are user assigned, normalized keywords. See NormalizeTags.
+	Tags []string `json:"tags,omitempty"`
+	// Summary is a short description of the document. It is filled
+	// automatically and can be replaced by the user.
+	Summary string `json:"summary,omitempty"`
+	// SummarySource records how Summary was produced: SummarySourceAuto,
+	// SummarySourceLLM or SummarySourceUser.
+	SummarySource string `json:"summary_source,omitempty"`
+	// Notes holds free form user notes about the document.
+	Notes string `json:"notes,omitempty"`
+	// UserEdited lists the fields a user changed by hand. Resubmissions of
+	// the document keep these values instead of the submitted ones.
+	UserEdited []string       `json:"user_edited,omitempty"`
 	AddCount   uint           `json:"add_count"`
 	Metadata   map[string]any `json:"metadata"`
 	// LanguageOverride records an explicit language choice. Empty follows detection settings.

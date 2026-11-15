@@ -130,6 +130,8 @@
     updated?: number;
     add_count?: number;
     label?: string;
+    tags?: string[];
+    summary?: string;
     semanticScore?: number;
     finalScore?: number;
     sourceType?: 'keyword' | 'semantic' | 'both';
@@ -2539,20 +2541,37 @@
                             </Button>
                           {/if}
                         </div>
-                        {#if state.displayLabel}
+                        {#if state.displayLabel || r.tags?.length}
                           <div
                             class="result-secondary-meta flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1"
                           >
-                            <Badge
-                              variant="secondary"
-                              class="result-label bg-muted-surface/60 text-text-brand-secondary min-h-4 max-w-full border-0 px-1.5 py-0"
-                              title={state.displayLabel}
-                            >
-                              <Tag class="mr-0.5 size-2.5 shrink-0" />{state.displayLabel}
-                            </Badge>
+                            {#if state.displayLabel}
+                              <Badge
+                                variant="secondary"
+                                class="result-label bg-muted-surface/60 text-text-brand-secondary min-h-4 max-w-full border-0 px-1.5 py-0"
+                                title={state.displayLabel}
+                              >
+                                <Tag class="mr-0.5 size-2.5 shrink-0" />{state.displayLabel}
+                              </Badge>
+                            {/if}
+                            {#each r.tags ?? [] as tag (tag)}
+                              <button
+                                type="button"
+                                class="result-tag font-inter text-hister-teal cursor-pointer text-xs hover:underline"
+                                title={`Filter by tag ${tag}`}
+                                onclick={() => toggleQueryToken('tag', tag)}>#{tag}</button
+                              >
+                            {/each}
                           </div>
                         {/if}
                       </div>
+                      {#if r.summary}
+                        <p
+                          class="result-summary font-inter text-text-brand text-sm leading-[1.45] italic md:text-base"
+                        >
+                          {r.summary}
+                        </p>
+                      {/if}
                       {#if r.text}
                         <p
                           id={`result-snippet-${i}`}

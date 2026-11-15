@@ -38,6 +38,7 @@ export interface PreviewDocumentDetails {
   type: string;
   language: string;
   label: string;
+  tags?: string[];
   visits: number;
   user_id: number;
   metadata: Record<string, unknown>;
@@ -55,6 +56,10 @@ export interface DocumentPreviewResponse {
   version_created_at?: string;
   version_count?: number;
   visit_count?: number;
+  summary?: string;
+  summary_source?: string;
+  notes?: string;
+  user_edited?: string[];
 }
 
 export interface DocumentVisit {

@@ -15,7 +15,7 @@ import (
 	"github.com/asciimoo/hister/server/document"
 )
 
-const Version = 3
+const Version = 4
 
 type FieldKind string
 
@@ -53,6 +53,7 @@ type FieldDefinition struct {
 	Visible           bool     `json:"-"`
 	Phrase            bool     `json:"-"`
 	NormalizeFilePath bool     `json:"-"`
+	NormalizeTag      bool     `json:"-"`
 	DefaultSearch     bool     `json:"-"`
 	DefaultWildcard   bool     `json:"-"`
 }
@@ -154,6 +155,9 @@ var fields = []FieldDefinition{
 	{Name: "type", Label: "Type", Description: "Filter web, local, or remote file documents", Kind: FieldKindEnum, ValueSet: "document_types", IndexField: "type", Visible: true},
 	{Name: "language", Label: "Language", Description: "Filter by language tag, including more specific tags: en includes en-US; no aliases nb", Kind: FieldKindText, IndexField: "language", Weight: 1, Visible: true},
 	{Name: "label", Label: "Label", Description: "Search assigned labels", Kind: FieldKindText, IndexField: "label", Weight: 1, Visible: true},
+	{Name: "tag", Label: "Tag", Description: "Filter by a user assigned tag", Kind: FieldKindKeyword, IndexField: "tags", Aliases: []string{"tags"}, Weight: 6, Visible: true, NormalizeTag: true},
+	{Name: "summary", Label: "Summary", Description: "Search only document summaries", Kind: FieldKindText, IndexField: "summary", Weight: 6, Visible: true, Phrase: true, DefaultSearch: true},
+	{Name: "notes", Label: "Notes", Description: "Search only user notes", Kind: FieldKindText, IndexField: "notes", Weight: 4, Visible: true, Phrase: true, DefaultSearch: true},
 	{Name: "visits", Label: "Visits", Description: "Filter by visit count", Kind: FieldKindNumericRange, ValueSet: "visit_counts", IndexField: "add_count", Aliases: []string{"add_count"}, Visible: true},
 	{Name: "updated", Label: "Updated", Description: "Filter by last update time", Kind: FieldKindTime, ValueSet: "time_ranges", IndexField: "updated", Visible: true},
 	{Name: "added", Label: "Added", Description: "Filter by indexed time", Kind: FieldKindTime, ValueSet: "time_ranges", IndexField: "added", Visible: true},
@@ -162,6 +166,7 @@ var fields = []FieldDefinition{
 
 var facets = []FacetDefinition{
 	{Name: "domains", Label: "Domains", QueryField: "domain", Kind: FacetKindTerms, Icon: "globe", DefaultSize: 10},
+	{Name: "tags", Label: "Tags", QueryField: "tag", Kind: FacetKindTerms, Icon: "tag", DefaultSize: 15},
 	{Name: "languages", Label: "Languages", QueryField: "language", Kind: FacetKindTerms, Icon: "globe", DefaultSize: 10},
 	{Name: "types", Label: "Type", QueryField: "type", Kind: FacetKindNumericRanges, Icon: "tag", DefaultSize: 3},
 	{Name: "visits", Label: "Visits", QueryField: "visits", Kind: FacetKindNumericRanges, Icon: "eye", DefaultSize: 4},

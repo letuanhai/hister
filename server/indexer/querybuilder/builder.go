@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/asciimoo/hister/files"
+	"github.com/asciimoo/hister/server/document"
 	"github.com/asciimoo/hister/server/indexer/searchschema"
 	"github.com/asciimoo/hister/server/languages"
 
@@ -125,6 +126,13 @@ func buildFieldQuery(field, v string) query.Query {
 	}
 	if definition.Name == "language" {
 		return buildLanguageQuery(definition, v)
+	}
+	if definition.NormalizeTag {
+		if strings.Contains(v, "*") {
+			v = strings.ToLower(strings.TrimPrefix(strings.TrimSpace(v), "#"))
+		} else {
+			v = document.NormalizeTag(v)
+		}
 	}
 	if strings.Contains(v, "*") {
 		if definition.NormalizeFilePath {

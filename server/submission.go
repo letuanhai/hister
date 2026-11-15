@@ -34,6 +34,15 @@ func prepareDocumentSubmission(c *webContext, d *document.Document) (int, error)
 func clearSubmittedStorageReferences(d *document.Document) {
 	d.HTMLKey = ""
 	d.FaviconKey = ""
+	// Manual edits are only made through the update API.
+	d.UserEdited = nil
+	d.Summary = strings.TrimSpace(d.Summary)
+	if d.Summary == "" {
+		d.SummarySource = ""
+	} else if d.SummarySource != document.SummarySourceLLM {
+		d.SummarySource = document.SummarySourceAuto
+	}
+	d.Tags = document.NormalizeTags(d.Tags)
 }
 
 // shouldSkipSubmission checks URL allow and skip rules unless the document carries an

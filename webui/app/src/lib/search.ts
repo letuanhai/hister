@@ -31,6 +31,9 @@ export interface SearchResult {
   updated?: number;
   add_count?: number;
   label?: string;
+  tags?: string[];
+  summary?: string;
+  notes?: string;
   user_id?: number;
   pinned?: boolean;
 }

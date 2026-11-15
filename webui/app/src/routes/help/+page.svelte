@@ -86,6 +86,10 @@
     { query: 'language:nb', description: 'Find Norwegian Bokmal, including historical no labels.' },
     { query: 'label:research', description: 'Find documents with a matching label.' },
     { query: 'has:label', description: 'Find documents with a nonempty label.' },
+    { query: 'tag:reading', description: 'Find documents with a tag. Tags are case insensitive.' },
+    { query: 'tag:dev*', description: 'Find documents with any tag starting with dev.' },
+    { query: 'notes:todo', description: 'Search only your notes.' },
+    { query: 'summary:kubernetes', description: 'Search only document summaries.' },
     {
       query: '-has:metadata.author',
       description: 'Find documents without an author metadata value.',

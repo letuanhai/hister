@@ -9,6 +9,7 @@
   import { Button } from '@hister/components/ui/button';
   import * as Card from '@hister/components/ui/card';
   import * as Alert from '@hister/components/ui/alert';
+  import TagInput from '#lib/components/TagInput.svelte';
   import AlertCircle from '@lucide/svelte/icons/circle-alert';
   import CheckCircle from '@lucide/svelte/icons/circle-check';
   import {
@@ -21,12 +22,14 @@
     Plus,
     RotateCcw,
     Save,
+    Tag,
     Type,
   } from '@lucide/svelte';
 
   let url = $state('');
   let title = $state('');
   let text = $state('');
+  let tags = $state<string[]>([]);
   let message = $state('');
   let isError = $state(false);
   let submitting = $state(false);
@@ -71,7 +74,12 @@
       const res = await apiFetch('/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: submittedUrl, title: submittedTitle, text }),
+        body: JSON.stringify({
+          url: submittedUrl,
+          title: submittedTitle,
+          text,
+          ...(tags.length && { tags }),
+        }),
       });
       if (res.status === 201) {
         message = 'Document added successfully.';
@@ -80,6 +88,7 @@
         url = '';
         title = '';
         text = '';
+        tags = [];
       } else if (res.status === 406) {
         message = 'URL skipped (matches skip rules or is a local URL).';
         isError = false;
@@ -99,6 +108,7 @@
     url = '';
     title = '';
     text = '';
+    tags = [];
     message = '';
     addedDocument = null;
   }
@@ -290,6 +300,32 @@
                 />
                 <p id="entry-title-help" class="font-inter text-text-brand-muted text-xs">
                   Searchable title for the document
+                </p>
+              </div>
+            </div>
+
+            <div class="grid gap-3 p-4 md:grid-cols-[12rem_minmax(0,1fr)] md:p-5">
+              <div class="flex items-start gap-2">
+                <span
+                  class="border-brutal-border bg-card-surface text-hister-coral flex size-8 shrink-0 items-center justify-center border-[2px]"
+                >
+                  <Tag class="size-4" />
+                </span>
+                <div class="min-w-0">
+                  <Label for="entry-tags" class="font-outfit text-text-brand text-sm font-black">
+                    Tags
+                  </Label>
+                  <p
+                    class="font-fira text-text-brand-muted mt-1 text-[11px] font-semibold uppercase"
+                  >
+                    Optional
+                  </p>
+                </div>
+              </div>
+              <div class="min-w-0 space-y-2">
+                <TagInput id="entry-tags" bind:tags />
+                <p class="font-inter text-text-brand-muted text-xs">
+                  Press Enter or comma to add a tag. Existing tags are suggested.
                 </p>
               </div>
             </div>
