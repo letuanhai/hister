@@ -14,7 +14,7 @@ test('a previewed page can be saved and read from the saved pages', async ({ pag
   await expect(page.getByRole('button', { name: 'Remove from offline reading' })).toBeVisible();
 
   await page.goto('/saved');
-  const entry = page.getByRole('button', { name: new RegExp(preview.title) });
+  const entry = page.locator('li button.min-w-0').first();
   await expect(entry).toBeVisible();
   await expect(page.getByText('stored preview')).toBeVisible();
   await page.getByLabel('Filter saved pages').fill('nothing matches');

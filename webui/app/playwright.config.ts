@@ -15,6 +15,8 @@ export default defineConfig({
   ],
   use: {
     baseURL: 'http://127.0.0.1:4174',
+    // Requests made by the app's service worker bypass page.route mocks.
+    serviceWorkers: 'block',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     launchOptions: {
