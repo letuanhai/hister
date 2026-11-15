@@ -1412,3 +1412,39 @@ test('a delayed preview failure does not replace a newly selected document', asy
   await expect(page.getByRole('alert')).toHaveCount(0);
   await expect(page.getByText('Saved article content', { exact: true })).toBeVisible();
 });
+
+test('preview shows the visit timeline and deletes a visit', async ({ page }) => {
+  await page.route('**/api/preview?**', (route) =>
+    route.fulfill({ json: { ...preview, version_count: 0, visit_count: 3 } }),
+  );
+  const visitRequests: URLSearchParams[] = [];
+  await page.route('**/api/visits?**', (route) => {
+    const params = new URL(route.request().url()).searchParams;
+    visitRequests.push(params);
+    const visits =
+      params.get('offset') === '0'
+        ? [
+            { id: 3, url: original, user_id: 0, visited_at: '2026-04-10T12:00:00Z' },
+            { id: 2, url: original, user_id: 0, visited_at: '2026-04-10T08:00:00Z' },
+          ]
+        : [{ id: 1, url: original, user_id: 0, visited_at: '2026-03-01T08:00:00Z' }];
+    return route.fulfill({ json: { total: 3, visits } });
+  });
+  let deleted: unknown = null;
+  await page.route('**/api/visits/delete', async (route) => {
+    deleted = route.request().postDataJSON();
+    await route.fulfill({ status: 204 });
+  });
+  await page.goto(previewPath());
+  await page.getByRole('button', { name: 'Show document details', exact: true }).click();
+  await page.getByRole('button', { name: '3 visits', exact: true }).click();
+  await expect(page.getByText('Visit timeline', { exact: true })).toBeVisible();
+  await expect(page.locator('time[datetime="2026-04-10T12:00:00Z"]')).toBeVisible();
+  expect(visitRequests[0].get('document_id')).toBe('document-1');
+  await page.getByRole('button', { name: 'Show older visits (1 more)' }).click();
+  await expect(page.locator('time[datetime="2026-03-01T08:00:00Z"]')).toBeVisible();
+  await page.getByRole('button', { name: 'Delete visit' }).first().click();
+  await expect(page.locator('time[datetime="2026-04-10T12:00:00Z"]')).toHaveCount(0);
+  expect(deleted).toEqual({ id: 3 });
+  await expect(page.getByRole('button', { name: '2 visits', exact: true })).toBeVisible();
+});

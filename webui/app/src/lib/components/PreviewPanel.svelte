@@ -16,6 +16,8 @@
   import type {
     DocumentPreviewResponse,
     DocumentVersion,
+    DocumentVisit,
+    DocumentVisitsResponse,
     EmbeddedVideo,
     PreviewDocumentDetails,
     PreviewMetadata,
@@ -35,6 +37,8 @@
     Download,
     Info,
     Video,
+    Footprints,
+    Trash2,
   } from '@lucide/svelte';
   import { onMount, untrack } from 'svelte';
 
@@ -83,6 +87,29 @@
   let versionsLoaded = $state(false);
   let versionsError = $state('');
   let viewingVersion = $state<DocumentVersion | null>(null);
+  const visitsPageSize = 100;
+  let visitCount = $state(0);
+  let visits = $state<DocumentVisit[]>([]);
+  let showVisits = $state(false);
+  let visitsLoading = $state(false);
+  let visitsLoaded = $state(false);
+  let visitsError = $state('');
+  let visitsRequestId = 0;
+  const visitGroups = $derived.by(() => {
+    const groups: { day: string; visits: DocumentVisit[] }[] = [];
+    for (const v of visits) {
+      const day = new Date(v.visited_at).toLocaleDateString(undefined, {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+      const last = groups[groups.length - 1];
+      if (last && last.day === day) last.visits.push(v);
+      else groups.push({ day, visits: [v] });
+    }
+    return groups;
+  });
   let extractorName = $state('');
   let availableExtractors = $state<{ name: string; description: string }[]>([]);
   let extractorsLoaded = $state(false);
@@ -105,6 +132,7 @@
       searchScore !== undefined ||
       previewMetadataEntries.length > 0 ||
       versionCount > 0 ||
+      visitCount > 0 ||
       !!meta?.videos?.length,
   );
 
@@ -239,6 +267,12 @@
     documentDetails = null;
     showEmbeddedVideos = false;
     showVersions = false;
+    showVisits = false;
+    visitsRequestId++;
+    visitsLoading = false;
+    visitsLoaded = false;
+    visitsError = '';
+    visits = [];
     // Discard version history requests belonging to the previous preview.
     versionsRequestId++;
     versionsLoading = false;
@@ -252,6 +286,7 @@
       updated = null;
       title = hint;
       versionCount = 0;
+      visitCount = 0;
     }
     try {
       const extra: Record<string, string> = {};
@@ -276,6 +311,7 @@
       meta = data.meta ?? null;
       documentDetails = data.details;
       versionCount = data.version_count ?? 0;
+      visitCount = data.visit_count ?? 0;
       if (data.version_id && data.version_created_at) {
         viewingVersion = {
           id: data.version_id,
@@ -332,7 +368,54 @@
 
   function toggleVersions() {
     showVersions = !showVersions;
+    if (showVersions) showVisits = false;
     if (showVersions && !versionsLoaded) void loadVersions();
+  }
+
+  async function loadVisits(append = false) {
+    if (visitsLoading) return;
+    const requestId = ++visitsRequestId;
+    visitsLoading = true;
+    visitsError = '';
+    try {
+      const extra = {
+        limit: String(visitsPageSize),
+        offset: String(append ? visits.length : 0),
+      };
+      const resp = await apiFetch(documentRequestUrl('/visits', url, documentId, extra));
+      if (!resp.ok) throw new Error('Visit history request failed');
+      const data = (await resp.json()) as DocumentVisitsResponse;
+      if (requestId !== visitsRequestId) return;
+      visits = append ? [...visits, ...(data.visits ?? [])] : (data.visits ?? []);
+      visitCount = data.total ?? visits.length;
+      visitsLoaded = true;
+    } catch {
+      if (requestId !== visitsRequestId) return;
+      visitsError = 'Could not load the visit history. Please try again.';
+    } finally {
+      if (requestId === visitsRequestId) visitsLoading = false;
+    }
+  }
+
+  function toggleVisits() {
+    showVisits = !showVisits;
+    if (showVisits) showVersions = false;
+    if (showVisits && !visitsLoaded) void loadVisits();
+  }
+
+  async function deleteVisit(visit: DocumentVisit) {
+    try {
+      const resp = await apiFetch('/visits/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: visit.id }),
+      });
+      if (!resp.ok) throw new Error('Delete visit request failed');
+      visits = visits.filter((v) => v.id !== visit.id);
+      visitCount = Math.max(0, visitCount - 1);
+    } catch {
+      visitsError = 'Could not delete the visit. Please try again.';
+    }
   }
 </script>
 
@@ -591,8 +674,19 @@
           id="preview-document-details"
           class="border-border-brand-muted mt-2 max-h-[min(20rem,40vh)] overflow-y-auto overscroll-contain border-t pt-2"
         >
-          {#if versionCount > 0 || meta?.videos?.length}
+          {#if versionCount > 0 || visitCount > 0 || meta?.videos?.length}
             <div class="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+              {#if visitCount > 0}
+                <button
+                  onclick={toggleVisits}
+                  aria-expanded={showVisits}
+                  class="font-inter text-hister-teal inline-flex cursor-pointer items-center gap-1 text-xs hover:underline"
+                >
+                  <Footprints class="size-3" />
+                  {visitCount}
+                  {visitCount === 1 ? 'visit' : 'visits'}
+                </button>
+              {/if}
               {#if versionCount > 0}
                 <button
                   onclick={toggleVersions}
@@ -714,7 +808,72 @@
       </div>
     {/if}
     <ScrollArea class="min-h-0 flex-1 pr-2.5">
-      {#if showVersions && versionsLoading}
+      {#if showVisits && visitsLoading && !visitsLoaded}
+        <p role="status" class="font-inter text-text-brand-muted p-4 text-sm">
+          Loading visit history…
+        </p>
+      {:else if showVisits && visitsError && !visitsLoaded}
+        <PreviewLoadError message={visitsError} onretry={() => loadVisits()} />
+      {:else if showVisits}
+        <div class="p-4">
+          <p
+            class="font-outfit text-text-brand-muted mb-3 text-xs font-bold tracking-widest uppercase"
+          >
+            Visit timeline
+          </p>
+          {#if visitsError}
+            <p role="alert" class="font-inter mb-2 text-xs text-red-500">{visitsError}</p>
+          {/if}
+          <ol class="border-border-brand-muted relative ml-1.5 border-l-2">
+            {#each visitGroups as group (group.day)}
+              <li class="mb-4 ml-4 last:mb-0">
+                <span
+                  class="bg-hister-teal absolute -left-[5px] mt-1.5 size-2 rounded-full"
+                  aria-hidden="true"
+                ></span>
+                <p class="font-inter text-text-brand text-xs font-semibold tracking-wide uppercase">
+                  {group.day}
+                </p>
+                <ul class="mt-1 flex flex-col gap-0.5">
+                  {#each group.visits as v (v.id)}
+                    <li class="group flex items-center gap-2">
+                      <time
+                        datetime={v.visited_at}
+                        class="font-inter text-text-brand-secondary text-xs tabular-nums"
+                      >
+                        {new Date(v.visited_at).toLocaleTimeString()}
+                      </time>
+                      <button
+                        onclick={() => deleteVisit(v)}
+                        class="text-text-brand-muted cursor-pointer opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 hover:text-red-500"
+                        aria-label="Delete visit"
+                        title="Delete visit"
+                      >
+                        <Trash2 class="size-3" />
+                      </button>
+                    </li>
+                  {/each}
+                </ul>
+              </li>
+            {:else}
+              <li class="ml-4">
+                <p class="font-inter text-text-brand-muted text-sm">No visits recorded.</p>
+              </li>
+            {/each}
+          </ol>
+          {#if visits.length < visitCount}
+            <button
+              onclick={() => loadVisits(true)}
+              disabled={visitsLoading}
+              class="font-inter text-hister-teal mt-3 cursor-pointer text-xs hover:underline disabled:opacity-50"
+            >
+              {visitsLoading
+                ? 'Loading…'
+                : `Show older visits (${visitCount - visits.length} more)`}
+            </button>
+          {/if}
+        </div>
+      {:else if showVersions && versionsLoading}
         <p role="status" class="font-inter text-text-brand-muted p-4 text-sm">
           Loading previous versions…
         </p>

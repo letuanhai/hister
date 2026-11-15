@@ -54,4 +54,17 @@ export interface DocumentPreviewResponse {
   version_id?: number;
   version_created_at?: string;
   version_count?: number;
+  visit_count?: number;
+}
+
+export interface DocumentVisit {
+  id: number;
+  url: string;
+  user_id: number;
+  visited_at: string;
+}
+
+export interface DocumentVisitsResponse {
+  total: number;
+  visits: DocumentVisit[];
 }
