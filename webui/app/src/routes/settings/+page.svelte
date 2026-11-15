@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy, tick } from 'svelte';
+  import ArchiverCookies from '#lib/components/ArchiverCookies.svelte';
   import { MediaQuery } from 'svelte/reactivity';
   import { beforeNavigate, goto } from '$app/navigation';
   import { page } from '$app/state';
@@ -611,6 +612,14 @@
                     > to rebuild existing embeddings when needed. Ranking and query settings apply without
                     reindexing.
                   </p>
+                {:else if category === 'archiver'}
+                  <p class="text-text-brand-muted text-sm">
+                    The browser engine needs Chromium. The SingleFile engine needs the
+                    <code>single-file</code> CLI (<code>npm install -g single-file-cli</code>, which
+                    runs on Node.js 23 or later, Bun or Deno). Video downloads need
+                    <code>yt-dlp</code>.
+                  </p>
+                  <ArchiverCookies />
                 {:else if category === 'extractors'}
                   <p class="text-text-brand-muted text-sm">
                     Changes apply to future extraction. Fetch documents again to update previously

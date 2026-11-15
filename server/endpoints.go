@@ -429,6 +429,7 @@ func serveConfig(c *webContext) {
 		UserID               uint                      `json:"userId,omitempty"`
 		SemanticEnabled      bool                      `json:"semanticEnabled"`
 		SummariesEnabled     bool                      `json:"summariesEnabled"`
+		ArchivesEnabled      bool                      `json:"archivesEnabled"`
 		SemanticWeight       float64                   `json:"semanticWeight,omitempty"`
 		SimilarityThreshold  float64                   `json:"similarityThreshold,omitempty"`
 		OAuthProviders       []string                  `json:"oauthProviders,omitempty"`
@@ -476,6 +477,7 @@ func serveConfig(c *webContext) {
 		UserID:               c.UserID,
 		SemanticEnabled:      c.Indexer != nil && c.Indexer.SemanticSearchEnabled(),
 		SummariesEnabled:     c.Config.Summarizer.Enable,
+		ArchivesEnabled:      c.Config.Archiver.Enable,
 		SemanticWeight:       c.Config.SemanticSearch.SemanticWeight,
 		SimilarityThreshold:  c.Config.SemanticSearch.SimilarityThreshold,
 		OAuthProviders:       oauthProviders,
@@ -852,6 +854,7 @@ func serveAdd(c *webContext) {
 	}
 	recordDocumentVisit(d, req.time())
 	queueAutoSummary(c, d)
+	queueAutoArchive(c, d)
 	if existingDoc != nil {
 		newDoc := c.Indexer.GetByURLAndUser(d.URL, d.UserID)
 		if newDoc != nil {
@@ -993,6 +996,9 @@ func serveUpdateDocuments(c *webContext) {
 		for _, change := range result.OwnershipChanges {
 			if err := model.MoveDocumentVersions(change.URL, change.FromUserID, change.ToUserID); err != nil {
 				log.Warn().Err(err).Str("url", change.URL).Msg("failed to move document versions to the new owner")
+			}
+			if err := model.MoveArchives(change.URL, change.FromUserID, change.ToUserID); err != nil {
+				log.Warn().Err(err).Str("url", change.URL).Msg("failed to move document archives to the new owner")
 			}
 			if err := model.MoveVisits(change.URL, change.FromUserID, change.ToUserID); err != nil {
 				log.Warn().Err(err).Str("url", change.URL).Msg("failed to move document visits to the new owner")
@@ -2524,6 +2530,7 @@ func serveBatch(c *webContext) {
 	for _, v := range visits {
 		recordDocumentVisit(v.doc, v.at)
 		queueAutoSummary(c, v.doc)
+		queueAutoArchive(c, v.doc)
 	}
 	log.Debug().Int("ops", len(req.Ops)).Msg("batch request processed")
 	c.JSON(batchResponse{Results: results})

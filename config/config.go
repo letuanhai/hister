@@ -48,6 +48,7 @@ type Config struct {
 	Crawler                  CrawlerConfig         `yaml:"crawler" mapstructure:"crawler"`
 	SemanticSearch           SemanticSearch        `yaml:"semantic_search" mapstructure:"semantic_search"`
 	Summarizer               Summarizer            `yaml:"summarizer" mapstructure:"summarizer"`
+	Archiver                 Archiver              `yaml:"archiver" mapstructure:"archiver"`
 	Hotkeys                  Hotkeys               `yaml:"hotkeys" mapstructure:"hotkeys"`
 	TUI                      TUI                   `yaml:"-" mapstructure:"tui"`
 	SensitiveContentPatterns map[string]string     `yaml:"sensitive_content_patterns" mapstructure:"sensitive_content_patterns"`
@@ -433,6 +434,49 @@ func (e *Extractor) Clone() *Extractor {
 	copy := *e
 	copy.Options = cloneInputValue(reflect.ValueOf(e.Options)).Interface().(map[string]any)
 	return &copy
+}
+
+// Archiver engines.
+const (
+	ArchiverEngineStored     = "stored"
+	ArchiverEngineBrowser    = "browser"
+	ArchiverEngineSingleFile = "singlefile"
+)
+
+// Archiver configures reader view archives of documents for offline reading.
+type Archiver struct {
+	Enable bool `yaml:"enable" mapstructure:"enable"`
+	// Engine selects how a page is fetched before the main text is extracted:
+	// stored uses the HTML captured when the page was indexed, browser loads
+	// it in a headless browser and singlefile saves it with the SingleFile CLI.
+	Engine string `yaml:"engine" mapstructure:"engine"`
+	// Auto archives newly indexed web pages in the background.
+	Auto bool `yaml:"auto" mapstructure:"auto"`
+	// KeepImages inlines images into the archive; otherwise they are removed.
+	KeepImages    bool `yaml:"keep_images" mapstructure:"keep_images"`
+	MaxImageBytes int  `yaml:"max_image_bytes" mapstructure:"max_image_bytes"`
+	// Mobile loads pages with a phone viewport and user agent.
+	Mobile bool `yaml:"mobile" mapstructure:"mobile"`
+	// Adblock blocks requests to hosts listed in AdblockLists.
+	Adblock      bool     `yaml:"adblock" mapstructure:"adblock"`
+	AdblockLists []string `yaml:"adblock_lists" mapstructure:"adblock_lists"`
+	// AdblockExtension is an unpacked browser extension directory, such as
+	// uBlock Origin Lite, loaded by the singlefile engine.
+	AdblockExtension string `yaml:"adblock_extension" mapstructure:"adblock_extension"`
+	// BrowserPath is the Chromium executable; empty searches the PATH.
+	BrowserPath string `yaml:"browser_path" mapstructure:"browser_path"`
+	// ProfileDir holds one persistent browser profile per user so pages can
+	// be archived with the user's logins. Empty uses a temporary profile.
+	ProfileDir string `yaml:"profile_dir" mapstructure:"profile_dir"`
+	// SingleFilePath is the single-file CLI executable.
+	SingleFilePath string `yaml:"singlefile_path" mapstructure:"singlefile_path"`
+	// Video downloads videos of supported pages with yt-dlp.
+	Video         bool   `yaml:"video" mapstructure:"video"`
+	YtDlpPath     string `yaml:"ytdlp_path" mapstructure:"ytdlp_path"`
+	VideoFormat   string `yaml:"video_format" mapstructure:"video_format"`
+	MaxVideoBytes int    `yaml:"max_video_bytes" mapstructure:"max_video_bytes"`
+	Timeout       int    `yaml:"timeout" mapstructure:"timeout"`
+	Concurrency   int    `yaml:"concurrency" mapstructure:"concurrency"`
 }
 
 // Summarizer providers.
@@ -877,6 +921,19 @@ func CreateDefaultConfig() *Config {
 			"github_token":        `(ghp|gho|ghu|ghs|ghr)_[a-zA-Z0-9]{36}`,
 			"ssh_private_key":     `-----BEGIN OPENSSH PRIVATE KEY-----`,
 			"pgp_private_key":     `-----BEGIN PGP PRIVATE KEY BLOCK-----`,
+		},
+		Archiver: Archiver{
+			Enable:         false,
+			Engine:         ArchiverEngineStored,
+			KeepImages:     true,
+			MaxImageBytes:  5 << 20,
+			AdblockLists:   []string{},
+			SingleFilePath: "single-file",
+			YtDlpPath:      "yt-dlp",
+			VideoFormat:    "bv*[height<=720]+ba/b[height<=720]/b",
+			MaxVideoBytes:  500 << 20,
+			Timeout:        120,
+			Concurrency:    1,
 		},
 		Summarizer: Summarizer{
 			Enable:        false,

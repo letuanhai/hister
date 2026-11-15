@@ -26,6 +26,7 @@ export interface AppConfig {
   disablePreviews?: boolean;
   semanticEnabled?: boolean;
   summariesEnabled?: boolean;
+  archivesEnabled?: boolean;
   semanticWeight?: number;
   similarityThreshold?: number;
   search: SearchCapabilities;
@@ -47,7 +48,7 @@ let _config: AppConfig | null = null;
 let _configRequest: Promise<AppConfig> | null = null;
 let _csrf: string = '';
 
-function apiPath(path: string): string {
+export function apiPath(path: string): string {
   if (path === '') {
     return `${resolve('/')}api`;
   }

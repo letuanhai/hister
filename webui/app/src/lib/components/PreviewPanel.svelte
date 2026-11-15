@@ -6,6 +6,8 @@
   import { parseIssuePreview, type IssuePreviewData } from '#lib/issue-preview.js';
   import PreviewLoadError from './PreviewLoadError.svelte';
   import DocumentEditDialog from './DocumentEditDialog.svelte';
+  import ArchivesView from './ArchivesView.svelte';
+  import { fetchConfig } from '#lib/api.js';
   import type { EditableDocument } from '#lib/tags.js';
   import { apiFetch } from '#lib/api.js';
   import { resolve } from '$app/paths';
@@ -42,6 +44,7 @@
     Footprints,
     Trash2,
     Pencil,
+    Archive,
   } from '@lucide/svelte';
   import { onMount, untrack } from 'svelte';
 
@@ -91,6 +94,8 @@
   let versionsError = $state('');
   let viewingVersion = $state<DocumentVersion | null>(null);
   let editOpen = $state(false);
+  let archivesEnabled = $state(false);
+  let showArchives = $state(false);
   let editable = $state<Omit<EditableDocument, 'url'>>({
     title: '',
     label: '',
@@ -171,6 +176,9 @@
 
   onMount(() => {
     showDocumentDetails = getStoredPreviewDetailsOpen();
+    fetchConfig()
+      .then((cfg) => (archivesEnabled = !!cfg.archivesEnabled))
+      .catch(() => (archivesEnabled = false));
   });
 
   function toggleDocumentDetails() {
@@ -282,6 +290,7 @@
     showEmbeddedVideos = false;
     showVersions = false;
     showVisits = false;
+    showArchives = false;
     visitsRequestId++;
     visitsLoading = false;
     visitsLoaded = false;
@@ -414,7 +423,10 @@
 
   function toggleVersions() {
     showVersions = !showVersions;
-    if (showVersions) showVisits = false;
+    if (showVersions) {
+      showVisits = false;
+      showArchives = false;
+    }
     if (showVersions && !versionsLoaded) void loadVersions();
   }
 
@@ -443,9 +455,20 @@
     }
   }
 
+  function toggleArchives() {
+    showArchives = !showArchives;
+    if (showArchives) {
+      showVersions = false;
+      showVisits = false;
+    }
+  }
+
   function toggleVisits() {
     showVisits = !showVisits;
-    if (showVisits) showVersions = false;
+    if (showVisits) {
+      showVersions = false;
+      showArchives = false;
+    }
     if (showVisits && !visitsLoaded) void loadVisits();
   }
 
@@ -612,6 +635,29 @@
                 </div>
               </DropdownMenu.Content>
             </DropdownMenu.Root>
+            {#if archivesEnabled && !viewingVersion}
+              <Tooltip.Root>
+                <Tooltip.Trigger onclick={toggleArchives}>
+                  {#snippet child({ props })}
+                    <Button
+                      {...props}
+                      variant="ghost"
+                      size="icon-sm"
+                      class={showArchives
+                        ? 'text-hister-teal hover:text-hister-teal'
+                        : 'text-text-brand-muted hover:text-text-brand'}
+                      aria-label="Archives"
+                      aria-pressed={showArchives}
+                    >
+                      <Archive class="size-4" />
+                    </Button>
+                  {/snippet}
+                </Tooltip.Trigger>
+                <Tooltip.Content role="tooltip" side="bottom" sideOffset={6}
+                  >Reader archives</Tooltip.Content
+                >
+              </Tooltip.Root>
+            {/if}
             {#if !viewingVersion}
               <Tooltip.Root>
                 <Tooltip.Trigger onclick={() => (editOpen = true)}>
@@ -907,7 +953,9 @@
       </div>
     {/if}
     <ScrollArea class="min-h-0 flex-1 pr-2.5">
-      {#if showVisits && visitsLoading && !visitsLoaded}
+      {#if showArchives}
+        <ArchivesView {url} {documentId} />
+      {:else if showVisits && visitsLoading && !visitsLoaded}
         <p role="status" class="font-inter text-text-brand-muted p-4 text-sm">
           Loading visit history…
         </p>

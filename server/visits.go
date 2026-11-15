@@ -59,7 +59,7 @@ func recordDocumentVisit(d *document.Document, at time.Time) {
 }
 
 // deleteDocumentRecords removes the database records tied to a deleted
-// document: search history entries and recorded visits.
+// document: search history entries, recorded visits and archives.
 func deleteDocumentRecords(url string, uid uint) {
 	if err := model.DeleteHistoryURL(uid, url); err != nil {
 		log.Warn().Err(err).Str("url", url).Msg("failed to delete history for deleted document")
@@ -67,6 +67,7 @@ func deleteDocumentRecords(url string, uid uint) {
 	if err := model.DeleteVisits(url, uid); err != nil {
 		log.Warn().Err(err).Str("url", url).Msg("failed to delete visits for deleted document")
 	}
+	deleteDocumentArchives(url, uid)
 }
 
 func serveVisits(c *webContext) {

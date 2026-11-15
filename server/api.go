@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/asciimoo/hister/server/archiver"
 
 	"github.com/asciimoo/hister/config"
 )
@@ -615,6 +616,73 @@ func init() {
 				{Name: "url", Type: "string", Required: true, Description: "URL of the document"},
 				{Name: "document_id", Type: "string", Required: false, Description: "Exact document ID when the URL exists under more than one owner"},
 			},
+		},
+		{
+			Name:         "Archive document",
+			Path:         "/api/archive",
+			Method:       POST,
+			CSRFRequired: true,
+			Handler:      serveCreateArchive,
+			Description:  "Save a reader view archive of a document: its main text with embedded images, for offline reading. Omitted options use the archiver configuration. Returns the archive record; a failed archive is returned with status failed and an error.",
+			JSONSchema: []*JSONSchemaField{
+				{Name: "url", Type: "string", Required: true, Description: "URL of the document"},
+				{Name: "document_id", Type: "string", Required: false, Description: "Exact document ID when the URL exists under more than one owner"},
+				{Name: "engine", Type: "string", Required: false, Description: "stored, browser or singlefile"},
+				{Name: "keep_images", Type: "bool", Required: false, Description: "Embed images instead of removing them"},
+				{Name: "mobile", Type: "bool", Required: false, Description: "Load the mobile version of the page"},
+				{Name: "adblock", Type: "bool", Required: false, Description: "Block requests to hosts in the ad block lists"},
+				{Name: "video", Type: "bool", Required: false, Description: "Download the page's video with yt-dlp in the background"},
+			},
+		},
+		{
+			Name:         "List archives",
+			Path:         "/api/archives",
+			Method:       GET,
+			CSRFRequired: false,
+			Handler:      serveListArchives,
+			Description:  "List the archives of a document, or with no url every ready archive of the current user, newest first",
+			Args: []*EndpointArg{
+				{Name: "url", Type: "string", Required: false, Description: "URL of the document"},
+				{Name: "document_id", Type: "string", Required: false, Description: "Exact document ID when the URL exists under more than one owner"},
+				{Name: "limit", Type: "int", Required: false, Description: "Maximum archives without url (default 100)"},
+				{Name: "offset", Type: "int", Required: false, Description: "Archives to skip without url"},
+			},
+		},
+		{
+			Name:         "Archive file",
+			Path:         "/api/archive/{id}/{file...}",
+			Method:       GET,
+			CSRFRequired: false,
+			Handler:      serveArchiveFile,
+			Description:  "Serve the reader page of an archive, or its video file, with scripts and remote requests blocked",
+		},
+		{
+			Name:         "Delete archive",
+			Path:         "/api/archives/delete",
+			Method:       POST,
+			CSRFRequired: true,
+			Handler:      serveDeleteArchive,
+			Description:  "Delete one archive and its files",
+			JSONSchema: []*JSONSchemaField{
+				{Name: "id", Type: "int", Required: true, Description: "Archive ID"},
+			},
+		},
+		{
+			Name:         "Archiver status",
+			Path:         "/api/archiver",
+			Method:       GET,
+			CSRFRequired: false,
+			Handler:      serveArchiverStatus,
+			Description:  "Return the archiver defaults and whether the current user has cookies or a browser profile",
+		},
+		{
+			Name:         "Archiver cookies",
+			Path:         "/api/archiver/cookies",
+			Method:       POST,
+			CSRFRequired: true,
+			BodyLimit:    func(*config.Config) int64 { return archiver.MaxCookiesFileBytes + 1024 },
+			Handler:      serveArchiverCookies,
+			Description:  "Store a cookies file, as Netscape cookies.txt or a JSON export, sent with archive requests of the current user. An empty body removes it.",
 		},
 		{
 			Name:         "Tags",

@@ -119,6 +119,7 @@ func automigrate() error {
 		&EmbeddingJob{},
 		&WebSession{},
 		&DocumentVisit{},
+		&DocumentArchive{},
 	)
 }
 

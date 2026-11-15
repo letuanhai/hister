@@ -175,6 +175,7 @@ export const categoryLabels: Record<string, string> = {
   crawler: 'Crawler',
   semantic_search: 'Semantic search',
   summarizer: 'Summaries',
+  archiver: 'Archives',
   extractors: 'Extractors',
   hotkeys: 'Hotkeys',
   sensitive_content_patterns: 'Sensitive content patterns',
