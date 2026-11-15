@@ -1,5 +1,47 @@
 # Changelog
 
+## Unreleased
+
+### New Features
+
+#### Visit Timeline
+
+Each visit of a web page is now recorded, so a document shows its full visit
+history instead of only a counter. Open it from the document details in the
+preview. Visits within 30 seconds count once, single visits can be deleted, and
+importers can pass the original time with the `visited` field.
+
+#### Tags, Notes, and Editable Entries
+
+Documents can carry tags, notes, and a summary, all editable from the preview
+with the new edit dialog, which also edits the title and label. Search with
+`tag:name`, `notes:`, and `summary:`; existing tags are suggested while typing
+in the edit dialog, on the add page, and after `tag:` in the search box. Manual
+titles and summaries are kept when a page is visited again. Run
+`hister reindex` once so existing indexes use the new fields.
+
+#### Summaries
+
+Pages get an automatic summary from their description or opening sentences.
+The optional `summarizer` settings add summaries written by a language model,
+through any OpenAI compatible endpoint, including local servers, or Anthropic
+Claude, on request or for every new page.
+
+#### Reader Archives
+
+The optional `archiver` saves the main text of a page, like reader view, with
+images embedded, so it stays readable when the page changes or disappears.
+Pages are taken from the HTML captured at indexing time, a headless browser, or
+the SingleFile CLI. The browser engines support a persistent profile per user
+(sign in with `hister archive-login`), uploaded cookies, the mobile version of a
+page, and ad blocking; videos can be downloaded with yt-dlp.
+
+#### Offline Use
+
+The web app can be installed as a progressive web app and opens without a
+network. Save a page for offline reading from its preview and read it later
+from the new Saved page, also when offline.
+
 ## v0.21.0
 
 ### New Features

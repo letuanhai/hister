@@ -48,6 +48,8 @@ Alternative installation methods include Homebrew (`brew install hister`), Docke
 - **Crawler and browser import**: Index websites or bring in existing browser history and bookmarks.
 - **Web, terminal, and MCP clients**: Search from the browser, TUI, command line, or an AI assistant.
 - **Multi user support**: Keep each user's documents and search results separate on a shared server.
+- **Visit timeline, tags, and notes**: See every visit of a page, and organize documents with editable tags, notes, and summaries.
+- **Reader archives and offline reading**: Save the main text of pages, optionally through a logged in browser or SingleFile, and read them offline in the installable web app.
 
 ![Hister terminal interface](webui/website/src/lib/assets/demo.gif)
 

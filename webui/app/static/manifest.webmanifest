@@ -1,0 +1,19 @@
+{
+  "name": "Hister",
+  "short_name": "Hister",
+  "description": "Your own search engine for the pages you visit and the files you keep.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0b6e75",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Saved for offline", "url": "./saved", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] }
+  ]
+}

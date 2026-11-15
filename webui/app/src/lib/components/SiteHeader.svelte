@@ -26,6 +26,7 @@
   const navItems = [
     { label: 'History', href: 'history', color: 'var(--hister-indigo)' },
     { label: 'Rules', href: 'rules', color: 'var(--hister-teal)' },
+    { label: 'Saved', href: 'saved', color: 'var(--hister-cyan)' },
   ];
   const addMenuItem = { label: 'Add', href: 'add', color: 'var(--hister-coral)' };
 

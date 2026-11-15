@@ -7,6 +7,7 @@
   import PreviewLoadError from './PreviewLoadError.svelte';
   import DocumentEditDialog from './DocumentEditDialog.svelte';
   import ArchivesView from './ArchivesView.svelte';
+  import { getOfflineEntry, offlineKey, removeOfflineEntry, saveForOffline } from '#lib/offline.js';
   import { fetchConfig } from '#lib/api.js';
   import type { EditableDocument } from '#lib/tags.js';
   import { apiFetch } from '#lib/api.js';
@@ -45,6 +46,8 @@
     Trash2,
     Pencil,
     Archive,
+    BookmarkCheck,
+    BookmarkPlus,
   } from '@lucide/svelte';
   import { onMount, untrack } from 'svelte';
 
@@ -96,6 +99,9 @@
   let editOpen = $state(false);
   let archivesEnabled = $state(false);
   let showArchives = $state(false);
+  let savedOffline = $state(false);
+  let savingOffline = $state(false);
+  let offlineMessage = $state('');
   let editable = $state<Omit<EditableDocument, 'url'>>({
     title: '',
     label: '',
@@ -342,6 +348,11 @@
       updated = data.updated ?? null;
       meta = data.meta ?? null;
       documentDetails = data.details;
+      getOfflineEntry(offlineKey(u, selectedDocumentId))
+        .then((entry) => {
+          if (requestId === contentRequestId) savedOffline = !!entry;
+        })
+        .catch(() => (savedOffline = false));
       editable = {
         title: data.title ?? '',
         label: data.details?.label ?? '',
@@ -404,6 +415,36 @@
       versionsError = 'Could not load previous versions. Please try again.';
     } finally {
       if (requestId === versionsRequestId) versionsLoading = false;
+    }
+  }
+
+  async function toggleOffline() {
+    savingOffline = true;
+    offlineMessage = '';
+    try {
+      if (savedOffline) {
+        await removeOfflineEntry(offlineKey(url, documentId));
+        savedOffline = false;
+        offlineMessage = 'Removed from offline reading.';
+      } else {
+        const entry = await saveForOffline({
+          url,
+          documentId,
+          title: title || hintTitle,
+          summary: editable.summary,
+          tags: editable.tags,
+          archivesEnabled,
+        });
+        savedOffline = true;
+        offlineMessage =
+          entry.source === 'archive'
+            ? 'Saved the reader archive for offline reading.'
+            : 'Saved for offline reading.';
+      }
+    } catch (e) {
+      offlineMessage = e instanceof Error ? e.message : 'Saving for offline reading failed.';
+    } finally {
+      savingOffline = false;
     }
   }
 
@@ -635,6 +676,37 @@
                 </div>
               </DropdownMenu.Content>
             </DropdownMenu.Root>
+            {#if !viewingVersion}
+              <Tooltip.Root>
+                <Tooltip.Trigger onclick={toggleOffline} disabled={savingOffline}>
+                  {#snippet child({ props })}
+                    <Button
+                      {...props}
+                      variant="ghost"
+                      size="icon-sm"
+                      class={savedOffline
+                        ? 'text-hister-teal hover:text-hister-teal'
+                        : 'text-text-brand-muted hover:text-text-brand'}
+                      aria-label={savedOffline ? 'Remove from offline reading' : 'Save for offline'}
+                      aria-pressed={savedOffline}
+                    >
+                      {#if savedOffline}
+                        <BookmarkCheck class="size-4" />
+                      {:else}
+                        <BookmarkPlus class="size-4" />
+                      {/if}
+                    </Button>
+                  {/snippet}
+                </Tooltip.Trigger>
+                <Tooltip.Content role="tooltip" side="bottom" sideOffset={6}
+                  >{savingOffline
+                    ? 'Saving…'
+                    : savedOffline
+                      ? 'Remove from offline reading'
+                      : 'Save for offline'}</Tooltip.Content
+                >
+              </Tooltip.Root>
+            {/if}
             {#if archivesEnabled && !viewingVersion}
               <Tooltip.Root>
                 <Tooltip.Trigger onclick={toggleArchives}>
@@ -781,6 +853,11 @@
           {/if}
         </h2>
       </div>
+      {#if offlineMessage}
+        <p role="status" class="preview-offline-status font-inter text-text-brand-muted text-xs">
+          {offlineMessage}
+        </p>
+      {/if}
       {#if editable.tags.length || editable.summary}
         <div class="preview-user-data mt-1 flex flex-col gap-1">
           {#if editable.summary}

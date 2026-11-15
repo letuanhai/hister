@@ -8,6 +8,7 @@ import (
 	"encoding/gob"
 	"errors"
 	iofs "io/fs"
+	"mime"
 	"net"
 	"net/http"
 	"path"
@@ -90,6 +91,7 @@ func (c *webContext) effectiveRules() *config.Rules {
 
 func init() {
 	gob.Register(uint(0))
+	_ = mime.AddExtensionType(".webmanifest", "application/manifest+json")
 	sub, err := iofs.Sub(static.FS, "app")
 	if err != nil {
 		panic(err)
