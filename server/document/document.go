@@ -313,6 +313,7 @@ func (d *Document) processFile(ld LanguageDetector, sensitivePattern *regexp.Reg
 // finalizeDocument sets the document language and marks it as processed.
 func (d *Document) finalizeDocument(ld LanguageDetector) {
 	d.ResolveLanguage(ld)
+	d.EnsureAutoSummary()
 	d.Processed = true
 }
 

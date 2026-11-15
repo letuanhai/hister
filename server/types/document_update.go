@@ -23,12 +23,17 @@ type DocumentChanges struct {
 	Summary *string `json:"summary,omitempty"`
 	// Notes replaces the user notes.
 	Notes *string `json:"notes,omitempty"`
+	// GeneratedSummary stores a summary written by a language model. It is
+	// set by the server only and never replaces a manual summary unless
+	// ReplaceManualSummary is set.
+	GeneratedSummary     *string `json:"-"`
+	ReplaceManualSummary bool    `json:"-"`
 }
 
 // Empty reports whether no document attribute changes were requested.
 func (c DocumentChanges) Empty() bool {
 	return c.UserID == nil && c.Label == nil && c.Title == nil && !c.ResetTitle && c.Language == nil &&
-		c.Tags == nil && len(c.AddTags) == 0 && len(c.RemoveTags) == 0 && c.Summary == nil && c.Notes == nil
+		c.Tags == nil && len(c.AddTags) == 0 && len(c.RemoveTags) == 0 && c.Summary == nil && c.Notes == nil && c.GeneratedSummary == nil
 }
 
 // UpdateDocumentsRequest selects documents and describes the changes to apply.

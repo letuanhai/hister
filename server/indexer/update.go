@@ -159,6 +159,15 @@ func (i *Indexer) applyDocumentChanges(d *document.Document, changes servertypes
 			changed = true
 		}
 	}
+	if changes.GeneratedSummary != nil && (changes.ReplaceManualSummary || !d.IsUserEdited(document.UserEditedSummary)) {
+		if summary := strings.TrimSpace(*changes.GeneratedSummary); summary != "" &&
+			(d.Summary != summary || d.SummarySource != document.SummarySourceLLM || d.IsUserEdited(document.UserEditedSummary)) {
+			d.UnmarkUserEdited(document.UserEditedSummary)
+			d.Summary = summary
+			d.SummarySource = document.SummarySourceLLM
+			changed = true
+		}
+	}
 	if changes.Notes != nil {
 		if notes := strings.TrimSpace(*changes.Notes); d.Notes != notes {
 			d.Notes = notes

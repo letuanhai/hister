@@ -25,6 +25,7 @@ export interface AppConfig {
   oauthProviders?: string[];
   disablePreviews?: boolean;
   semanticEnabled?: boolean;
+  summariesEnabled?: boolean;
   semanticWeight?: number;
   similarityThreshold?: number;
   search: SearchCapabilities;

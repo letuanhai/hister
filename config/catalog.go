@@ -284,7 +284,7 @@ func (c *Config) PrepareDraftForRevision(revision string, edits []SettingEdit, v
 						break
 					}
 				}
-			case "crawler.headers", "semantic_search.headers", "hotkeys.web":
+			case "crawler.headers", "semantic_search.headers", "summarizer.headers", "hotkeys.web":
 				entries := make(map[string]string)
 				for name, value := range normalized.(map[string]any) {
 					entries[name] = value.(string)
@@ -612,6 +612,17 @@ func FieldCatalog() []FieldMetadata {
 		{Path: "semantic_search.embedding_timeout", Group: groupDocumentProcessing, Label: "Embedding timeout", Description: "Maximum seconds for document embedding requests. Zero uses five minutes.", Schema: SettingSchema{Sensitivity: "none", Min: new(0), Max: new(86400)}, Effect: "runtime"},
 		{Path: "semantic_search.max_embedding_batch_size", Group: groupDocumentProcessing, Label: "Embedding batch size", Description: "Maximum chunks per embedding request. Zero uses eight chunks.", Schema: SettingSchema{Sensitivity: "none", Min: new(0), Max: new(4096)}, Effect: "runtime"},
 		{Path: "semantic_search.max_embedding_concurrency", Group: groupDocumentProcessing, Label: "Embedding concurrency", Description: "Concurrent document embedding requests. Zero uses the default worker count.", Schema: SettingSchema{Sensitivity: "none", Min: new(0), Max: new(1024)}, Effect: "runtime"},
+		{Path: "summarizer.enable", Label: "LLM summaries", Description: "Allow summaries written by a language model. Page text is sent to the configured provider.", Schema: SettingSchema{Sensitivity: "none"}},
+		{Path: "summarizer.provider", Label: "Provider", Description: "openai calls any OpenAI compatible chat completions endpoint, including local servers. anthropic calls Claude.", Schema: SettingSchema{Sensitivity: "none", Choices: []string{SummarizerOpenAI, SummarizerAnthropic}, ChoiceLabels: map[string]string{SummarizerOpenAI: "OpenAI compatible", SummarizerAnthropic: "Anthropic Claude"}}},
+		{Path: "summarizer.endpoint", Label: "Endpoint", Description: "Chat completions URL for the OpenAI compatible provider. For Anthropic, an optional API base URL; empty uses the default.", Schema: SettingSchema{Sensitivity: "none", MaxLength: 4096}},
+		{Path: "summarizer.model", Label: "Model", Description: "Model name. Empty uses claude-opus-5-5 for Anthropic and qwen3:8b otherwise.", Schema: SettingSchema{Sensitivity: "none", MaxLength: 1024}},
+		{Path: "summarizer.api_key", Label: "API key", Description: "Credential for the provider. For Anthropic, empty uses the ANTHROPIC_API_KEY environment variable.", Schema: SettingSchema{Sensitivity: "secret", MaxLength: 16384}},
+		{Path: "summarizer.headers", Label: "Headers", Description: "Additional HTTP headers. Values stay hidden; removing a header removes its value.", Schema: SettingSchema{Type: "dictionary", Control: "dictionary", Collection: "replace", Sensitivity: "mixed", MaxItems: 128, Items: &SettingSchema{Type: "string", Control: "secret", Collection: "none", Sensitivity: "secret", MaxLength: 16384}}},
+		{Path: "summarizer.prompt", Label: "Instructions", Description: "Replaces the built in summarization instructions. Empty uses the default.", Schema: SettingSchema{Sensitivity: "none", MaxLength: 8192}},
+		{Path: "summarizer.max_input_chars", Label: "Maximum input characters", Description: "Longer page text is shortened before it is sent.", Schema: SettingSchema{Sensitivity: "none", Min: new(500), Max: new(1000000)}},
+		{Path: "summarizer.timeout", Label: "Timeout", Description: "Maximum seconds for one summary request.", Schema: SettingSchema{Sensitivity: "none", Min: new(1), Max: new(3600)}},
+		{Path: "summarizer.auto", Label: "Summarize new pages", Description: "Summarize newly indexed web pages in the background. Manual summaries are never replaced.", Schema: SettingSchema{Sensitivity: "none"}},
+		{Path: "summarizer.concurrency", Label: "Concurrency", Description: "Concurrent background summary requests.", Schema: SettingSchema{Sensitivity: "none", Min: new(1), Max: new(64)}},
 		{Path: "hotkeys.web", Label: "Web keyboard shortcuts", Description: "Shortcuts apply on the search page after saving. Use lowercase letters, digits, /, ?, enter, tab, arrowup, arrowdown, arrowleft, arrowright, or f1 through f12, optionally prefixed with ctrl+, alt+, or meta+. Some combinations are reserved by your browser or system. Clear removes configured shortcuts; built in navigation remains. Reset restores inherited shortcuts. Terminal shortcuts are configured separately.", Schema: webHotkeySchema()},
 		{Path: "sensitive_content_patterns", Label: "Sensitive content patterns", Description: "Named regular expressions that block matching documents during subsequent indexing. Use lowercase names. Replacing this collection removes omitted patterns, including defaults. Clear disables these checks; Reset restores inherited patterns. Existing documents are unchanged.", Schema: SettingSchema{Type: "dictionary", Control: "dictionary", Collection: "replace", Sensitivity: "none", KeyLabel: "Pattern name", ValueLabel: "Regular expression", MaxItems: 256, Items: &SettingSchema{Type: "string", Control: "text", Collection: "none", Sensitivity: "none", MinLength: 1, MaxLength: 4096}}},
 		fileManagedField("extractors", "", "Extractors", "Extractor enable switches and options described by the extractor registry."),

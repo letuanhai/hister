@@ -428,6 +428,7 @@ func serveConfig(c *webContext) {
 		Username             string                    `json:"username,omitempty"`
 		UserID               uint                      `json:"userId,omitempty"`
 		SemanticEnabled      bool                      `json:"semanticEnabled"`
+		SummariesEnabled     bool                      `json:"summariesEnabled"`
 		SemanticWeight       float64                   `json:"semanticWeight,omitempty"`
 		SimilarityThreshold  float64                   `json:"similarityThreshold,omitempty"`
 		OAuthProviders       []string                  `json:"oauthProviders,omitempty"`
@@ -474,6 +475,7 @@ func serveConfig(c *webContext) {
 		Username:             c.Username,
 		UserID:               c.UserID,
 		SemanticEnabled:      c.Indexer != nil && c.Indexer.SemanticSearchEnabled(),
+		SummariesEnabled:     c.Config.Summarizer.Enable,
 		SemanticWeight:       c.Config.SemanticSearch.SemanticWeight,
 		SimilarityThreshold:  c.Config.SemanticSearch.SimilarityThreshold,
 		OAuthProviders:       oauthProviders,
@@ -849,6 +851,7 @@ func serveAdd(c *webContext) {
 		return
 	}
 	recordDocumentVisit(d, req.time())
+	queueAutoSummary(c, d)
 	if existingDoc != nil {
 		newDoc := c.Indexer.GetByURLAndUser(d.URL, d.UserID)
 		if newDoc != nil {
@@ -2520,6 +2523,7 @@ func serveBatch(c *webContext) {
 
 	for _, v := range visits {
 		recordDocumentVisit(v.doc, v.at)
+		queueAutoSummary(c, v.doc)
 	}
 	log.Debug().Int("ops", len(req.Ops)).Msg("batch request processed")
 	c.JSON(batchResponse{Results: results})

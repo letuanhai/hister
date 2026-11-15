@@ -47,6 +47,7 @@ type Config struct {
 	Indexer                  Indexer               `yaml:"indexer" mapstructure:"indexer"`
 	Crawler                  CrawlerConfig         `yaml:"crawler" mapstructure:"crawler"`
 	SemanticSearch           SemanticSearch        `yaml:"semantic_search" mapstructure:"semantic_search"`
+	Summarizer               Summarizer            `yaml:"summarizer" mapstructure:"summarizer"`
 	Hotkeys                  Hotkeys               `yaml:"hotkeys" mapstructure:"hotkeys"`
 	TUI                      TUI                   `yaml:"-" mapstructure:"tui"`
 	SensitiveContentPatterns map[string]string     `yaml:"sensitive_content_patterns" mapstructure:"sensitive_content_patterns"`
@@ -432,6 +433,41 @@ func (e *Extractor) Clone() *Extractor {
 	copy := *e
 	copy.Options = cloneInputValue(reflect.ValueOf(e.Options)).Interface().(map[string]any)
 	return &copy
+}
+
+// Summarizer providers.
+const (
+	SummarizerOpenAI    = "openai"
+	SummarizerAnthropic = "anthropic"
+)
+
+// Summarizer configures optional document summaries written by a language model.
+type Summarizer struct {
+	Enable bool `yaml:"enable" mapstructure:"enable"`
+	// Provider is SummarizerOpenAI for any OpenAI compatible chat completions
+	// endpoint, including local servers, or SummarizerAnthropic for Claude.
+	Provider string `yaml:"provider" mapstructure:"provider"`
+	// Endpoint is the chat completions URL for the openai provider and an
+	// optional API base URL for the anthropic provider.
+	Endpoint string            `yaml:"endpoint" mapstructure:"endpoint"`
+	Model    string            `yaml:"model" mapstructure:"model"`
+	APIKey   string            `yaml:"api_key" mapstructure:"api_key"`
+	Headers  map[string]string `yaml:"headers" mapstructure:"headers"`
+	// Prompt replaces the built in summarization instructions.
+	Prompt        string `yaml:"prompt" mapstructure:"prompt"`
+	MaxInputChars int    `yaml:"max_input_chars" mapstructure:"max_input_chars"`
+	Timeout       int    `yaml:"timeout" mapstructure:"timeout"`
+	// Auto summarizes newly indexed web pages in the background.
+	Auto        bool `yaml:"auto" mapstructure:"auto"`
+	Concurrency int  `yaml:"concurrency" mapstructure:"concurrency"`
+}
+
+// DefaultSummarizerModel returns the model used when none is configured.
+func (s Summarizer) DefaultSummarizerModel() string {
+	if s.Provider == SummarizerAnthropic {
+		return "claude-opus-5-5"
+	}
+	return "qwen3:8b"
 }
 
 // SemanticSearch holds configuration for optional vector similarity search.
@@ -841,6 +877,17 @@ func CreateDefaultConfig() *Config {
 			"github_token":        `(ghp|gho|ghu|ghs|ghr)_[a-zA-Z0-9]{36}`,
 			"ssh_private_key":     `-----BEGIN OPENSSH PRIVATE KEY-----`,
 			"pgp_private_key":     `-----BEGIN PGP PRIVATE KEY BLOCK-----`,
+		},
+		Summarizer: Summarizer{
+			Enable:        false,
+			Provider:      SummarizerOpenAI,
+			Endpoint:      "http://localhost:11434/v1/chat/completions",
+			Model:         "",
+			Headers:       map[string]string{},
+			MaxInputChars: 24000,
+			Timeout:       120,
+			Auto:          false,
+			Concurrency:   1,
 		},
 		SemanticSearch: SemanticSearch{
 			Enable:                       false,

@@ -70,7 +70,7 @@ func TestFieldCatalogPreservesEditorContract(t *testing.T) {
 			t.Fatalf("incomplete description for %s", field.Path)
 		}
 		ordinaryIndexer := field.Category == "indexer" && !strings.HasPrefix(field.Path, "indexer.pdf_parser.")
-		if field.Category != "app" && field.Path != "server.address" && !ordinaryIndexer && field.Category != "crawler" && field.Category != "semantic_search" && field.Path != "hotkeys.web" && field.Path != "sensitive_content_patterns" {
+		if field.Category != "app" && field.Path != "server.address" && !ordinaryIndexer && field.Category != "crawler" && field.Category != "semantic_search" && field.Category != "summarizer" && field.Path != "hotkeys.web" && field.Path != "sensitive_content_patterns" {
 			if field.Schema.Type != "unknown" || field.Schema.Sensitivity != "unknown" || field.Default != nil || field.ReadOnlyReason == "" {
 				t.Fatalf("unsupported setting %s gained editing support or exposed defaults", field.Path)
 			}

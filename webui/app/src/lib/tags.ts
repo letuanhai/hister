@@ -65,3 +65,19 @@ export async function editDocument(
   }
   return res.json();
 }
+
+export async function summarizeDocument(
+  url: string,
+  documentId: string,
+): Promise<EditableDocument> {
+  const res = await apiFetch('/document/summarize', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, document_id: documentId }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(body.trim() || 'Generating the summary failed');
+  }
+  return res.json();
+}

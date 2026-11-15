@@ -605,6 +605,18 @@ func init() {
 			},
 		},
 		{
+			Name:         "Summarize document",
+			Path:         "/api/document/summarize",
+			Method:       POST,
+			CSRFRequired: true,
+			Handler:      serveDocumentSummarize,
+			Description:  "Write a summary of one document with the configured language model and store it, replacing any manual summary. Returns the editable fields. Fails with 409 when LLM summaries are disabled.",
+			JSONSchema: []*JSONSchemaField{
+				{Name: "url", Type: "string", Required: true, Description: "URL of the document"},
+				{Name: "document_id", Type: "string", Required: false, Description: "Exact document ID when the URL exists under more than one owner"},
+			},
+		},
+		{
 			Name:         "Tags",
 			Path:         "/api/tags",
 			Method:       GET,
