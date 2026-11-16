@@ -463,6 +463,9 @@ type Archiver struct {
 	// AdblockExtension is an unpacked browser extension directory, such as
 	// uBlock Origin Lite, loaded by the singlefile engine.
 	AdblockExtension string `yaml:"adblock_extension" mapstructure:"adblock_extension"`
+	// Proxy is an http:// or socks5:// proxy for archive requests: the
+	// browser engines and image downloads. Empty connects directly.
+	Proxy string `yaml:"proxy" mapstructure:"proxy"`
 	// BrowserPath is the Chromium executable; empty searches the PATH.
 	BrowserPath string `yaml:"browser_path" mapstructure:"browser_path"`
 	// ProfileDir holds one persistent browser profile per user so pages can
@@ -477,6 +480,31 @@ type Archiver struct {
 	MaxVideoBytes int    `yaml:"max_video_bytes" mapstructure:"max_video_bytes"`
 	Timeout       int    `yaml:"timeout" mapstructure:"timeout"`
 	Concurrency   int    `yaml:"concurrency" mapstructure:"concurrency"`
+}
+
+// ProxyURL returns the configured archive proxy, or nil when none is set or
+// the value is invalid; Validate reports invalid values.
+func (a Archiver) ProxyURL() *url.URL {
+	u, err := a.parseProxy()
+	if err != nil {
+		return nil
+	}
+	return u
+}
+
+func (a Archiver) parseProxy() (*url.URL, error) {
+	raw := strings.TrimSpace(a.Proxy)
+	if raw == "" {
+		return nil, nil
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return nil, fmt.Errorf("invalid archiver proxy URL: %w", err)
+	}
+	if (u.Scheme != "http" && u.Scheme != "socks5") || u.Hostname() == "" {
+		return nil, fmt.Errorf("archiver proxy must be an http:// or socks5:// URL with a host")
+	}
+	return u, nil
 }
 
 // Summarizer providers.
@@ -1073,6 +1101,9 @@ func (c *Config) init() error {
 		}
 	}
 	if err := c.Hotkeys.Validate(); err != nil {
+		return err
+	}
+	if _, err := c.Archiver.parseProxy(); err != nil {
 		return err
 	}
 	if err := c.validateSemanticSearch(); err != nil {

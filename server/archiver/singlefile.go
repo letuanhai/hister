@@ -55,6 +55,9 @@ func (a *Archiver) singleFileArgs(req Request, opts Options) []string {
 	if req.ProfileDir != "" {
 		browserArgs = append(browserArgs, "--user-data-dir="+req.ProfileDir)
 	}
+	if proxy := a.cfg.ProxyURL(); proxy != nil {
+		browserArgs = append(browserArgs, "--proxy-server="+proxy.String())
+	}
 	if opts.Adblock && a.cfg.AdblockExtension != "" {
 		browserArgs = append(browserArgs,
 			"--disable-extensions-except="+a.cfg.AdblockExtension,

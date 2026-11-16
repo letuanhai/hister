@@ -49,6 +49,9 @@ func (a *Archiver) browserOptions(profileDir string, headless bool, mobile bool)
 	if profileDir != "" {
 		opts = append(opts, chromedp.UserDataDir(profileDir))
 	}
+	if proxy := a.cfg.ProxyURL(); proxy != nil {
+		opts = append(opts, chromedp.ProxyServer(proxy.String()))
+	}
 	if mobile {
 		opts = append(opts, chromedp.WindowSize(412, 915), chromedp.UserAgent(MobileUserAgent))
 	} else {

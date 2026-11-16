@@ -87,9 +87,13 @@ func New(cfg config.Archiver, userAgent string) *Archiver {
 	if cfg.MaxImageBytes <= 0 {
 		cfg.MaxImageBytes = 5 << 20
 	}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	if proxy := cfg.ProxyURL(); proxy != nil {
+		transport.Proxy = http.ProxyURL(proxy)
+	}
 	return &Archiver{
 		cfg:       cfg,
-		client:    &http.Client{Timeout: 30 * time.Second},
+		client:    &http.Client{Timeout: 30 * time.Second, Transport: transport},
 		userAgent: userAgent,
 	}
 }

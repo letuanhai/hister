@@ -240,3 +240,31 @@ func TestArchiveWithSingleFile(t *testing.T) {
 		t.Error("archive keeps scripts or page furniture")
 	}
 }
+
+func TestArchiverProxy(t *testing.T) {
+	var proxied atomic.Int32
+	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// A plain HTTP forward proxy receives absolute request URLs.
+		proxied.Add(1)
+		w.Header().Set("Content-Type", "image/png")
+		_, _ = w.Write(pngBytes(t))
+	}))
+	defer proxy.Close()
+	a := New(config.Archiver{Proxy: proxy.URL}, "")
+	page := `<html><head><title>P</title></head><body><article>` + articleBody + `<p><img src="http://images.invalid/a.png"></p></article></body></html>`
+	out := t.TempDir()
+	if _, err := a.Archive(context.Background(), Request{URL: "http://site.invalid/p", StoredHTML: page, OutputDir: out}, Options{Engine: "stored", KeepImages: true}); err != nil {
+		t.Fatal(err)
+	}
+	html, _ := os.ReadFile(filepath.Join(out, IndexFile))
+	if proxied.Load() != 1 || !strings.Contains(string(html), "data:image/png;base64,") {
+		t.Errorf("image was not fetched through the proxy: %d requests", proxied.Load())
+	}
+	args := strings.Join(a.singleFileArgs(Request{URL: "http://site.invalid/p"}, Options{}), " ")
+	if !strings.Contains(args, `--proxy-server=`+proxy.URL) {
+		t.Errorf("SingleFile arguments lack the proxy: %s", args)
+	}
+	if New(config.Archiver{Proxy: "ftp://x"}, "").cfg.ProxyURL() != nil {
+		t.Error("invalid proxy accepted")
+	}
+}
