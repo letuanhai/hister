@@ -131,6 +131,9 @@ func (a *Archiver) Archive(ctx context.Context, req Request, opts Options) (*Res
 		return nil, err
 	}
 
+	if err := pageCtx.Err(); err != nil {
+		return nil, err
+	}
 	art, err := ExtractArticle(pageHTML, req.URL)
 	if err != nil {
 		return nil, err

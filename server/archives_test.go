@@ -1,9 +1,11 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -107,5 +109,28 @@ func TestArchiveEndpoints(t *testing.T) {
 	cfg.Archiver.Enable = false
 	if r := testutil.ServeHTTP(t, handler, http.MethodPost, "/api/archive", strings.NewReader(fmt.Sprintf(`{"url":%q}`, page)), headers); r.Code != http.StatusConflict {
 		t.Errorf("disabled archive: %d", r.Code)
+	}
+}
+
+func TestArchiveSurvivesClientDisconnect(t *testing.T) {
+	cfg := testutil.InitModel(t)
+	cfg.Archiver.Enable = true
+	idx := newServerTestIndexer(t, cfg)
+	handler := registerEndpoints(cfg, idx)
+	headers := map[string]string{"Content-Type": "application/json", "Origin": "hister://"}
+	const page = "https://example.com/disconnect"
+	body, _ := json.Marshal(map[string]string{"url": page, "html": archivePageHTML})
+	testutil.ServeHTTP(t, handler, http.MethodPost, "/api/add", strings.NewReader(string(body)), headers)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // The client is already gone when the archive starts.
+	req := httptest.NewRequestWithContext(ctx, http.MethodPost, "/api/archive", strings.NewReader(fmt.Sprintf(`{"url":%q}`, page)))
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	handler.ServeHTTP(httptest.NewRecorder(), req)
+	archives, err := model.GetArchives(page, 0)
+	if err != nil || len(archives) != 1 || archives[0].Status != model.ArchiveReady {
+		t.Fatalf("archive after disconnect = %+v, %v", archives, err)
 	}
 }

@@ -252,7 +252,10 @@ func serveCreateArchive(c *webContext) {
 		http.Error(c.Response, msg, status)
 		return
 	}
-	rec, err := createArchive(c.Request.Context(), c.Config, c.Indexer, doc, req.options(c.Config.Archiver))
+	// Finish the archive even when the client goes away, for example when the
+	// preview is closed; the archiver applies its own timeout.
+	ctx := context.WithoutCancel(c.Request.Context())
+	rec, err := createArchive(ctx, c.Config, c.Indexer, doc, req.options(c.Config.Archiver))
 	if err != nil {
 		if rec == nil {
 			log.Error().Err(err).Str("url", doc.URL).Msg("archive failed")

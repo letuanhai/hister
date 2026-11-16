@@ -41,6 +41,7 @@ func (a *Archiver) downloadVideo(ctx context.Context, req Request) (*Video, erro
 	}
 	args = append(args, "--", req.URL)
 	cmd := exec.CommandContext(ctx, bin, args...)
+	killProcessTree(cmd)
 	var stderr bytes.Buffer
 	cmd.Stderr = &limitedBuffer{buf: &stderr, max: 64 << 10}
 	if err := cmd.Run(); err != nil {

@@ -22,6 +22,7 @@ func (a *Archiver) fetchWithSingleFile(ctx context.Context, req Request, opts Op
 	defer unlock()
 	args := a.singleFileArgs(req, opts)
 	cmd := exec.CommandContext(ctx, a.singleFilePath(), args...)
+	killProcessTree(cmd)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &limitedBuffer{buf: &stdout, max: maxSingleFileOutput}
 	cmd.Stderr = &limitedBuffer{buf: &stderr, max: 64 << 10}
